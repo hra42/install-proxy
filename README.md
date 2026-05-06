@@ -55,6 +55,26 @@ Validation (enforced at startup): every tool entry must have both `host` and `re
 
 That's the whole flow.
 
+## Coexisting with other services
+
+The default `docker-compose.yml` uses `HostRegexp(`^.+$`)` with `priority=1`, so install-proxy acts as a catch-all for every hostname Traefik sees and only loses to routers with a specific `Host(...)` rule. That is fine when install-proxy is the only thing on the host.
+
+If you run other services on the same host (especially under a different domain), restrict install-proxy to the domain you actually use — otherwise unknown hostnames in *other* domains will hit install-proxy and return its `404 not found` instead of Traefik's default 404. Do this with a `docker-compose.override.yml` next to the repo file:
+
+```yaml
+services:
+  install-proxy:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.install-proxy.rule=HostRegexp(`^.+\\.example\\.com$$`)"
+      - "traefik.http.routers.install-proxy.priority=1"
+      - "traefik.http.routers.install-proxy.entrypoints=websecure"
+      - "traefik.http.routers.install-proxy.tls=true"
+      - "traefik.http.services.install-proxy.loadbalancer.server.port=8080"
+```
+
+The `$$` is Compose's escape for a literal `$`. The `!override` tag replaces the labels list completely instead of merging it with the one from the repo file.
+
 ## Required GitHub Release shape
 
 The proxy fetches `https://github.com/<repo>/releases/latest/download/install.sh`. For this to work, the repo must publish `install.sh` as an asset on its latest release. (The `deployer` release workflow already does this — copy that pattern.)
