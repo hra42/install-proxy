@@ -1,0 +1,29 @@
+# Assumes the host runs Traefik with:
+#   - an external Docker network named `traefik`
+#   - a cert resolver named `letsencrypt`
+# If your setup differs, edit the network name below and the
+# `traefik.http.routers.install-proxy.tls.certresolver` label.
+
+services:
+  install-proxy:
+    build: .
+    image: ghcr.io/hra42/install-proxy:latest
+    restart: unless-stopped
+    volumes:
+      - ./config.yml:/etc/install-proxy/config.yml:ro
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      # install-proxy serves many hosts (one per configured tool), so match
+      # any host and use a low priority so tool-specific routers still win.
+      - "traefik.http.routers.install-proxy.rule=HostRegexp(`{host:.+}`)"
+      - "traefik.http.routers.install-proxy.priority=1"
+      - "traefik.http.routers.install-proxy.entrypoints=websecure"
+      - "traefik.http.routers.install-proxy.tls=true"
+      - "traefik.http.routers.install-proxy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.install-proxy.loadbalancer.server.port=8080"
+
+networks:
+  traefik:
+    external: true

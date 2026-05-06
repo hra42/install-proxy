@@ -1,0 +1,12 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+dev-plan/
+dist/
+/install-proxy
+*.test
+*.out
+.DS_Store
