@@ -80,17 +80,14 @@ func handleInstall(cfg *Config) fiber.Handler {
 			))
 		}
 
-		c.Status(fiber.StatusOK)
-		c.Set(fiber.HeaderContentType, "text/x-shellscript; charset=utf-8")
-		c.Set(fiber.HeaderCacheControl, "public, max-age=300")
-		c.Set("X-Source", upstream)
-		if resp.ContentLength > 0 {
-			return c.SendStream(resp.Body, int(resp.ContentLength))
-		}
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return plain(c, fiber.StatusBadGateway, fmt.Sprintf("upstream read failed: %s\n\nsee %s\n", err, releasesPage))
 		}
+		c.Status(fiber.StatusOK)
+		c.Set(fiber.HeaderContentType, "text/x-shellscript; charset=utf-8")
+		c.Set(fiber.HeaderCacheControl, "public, max-age=300")
+		c.Set("X-Source", upstream)
 		return c.Send(body)
 	}
 }
