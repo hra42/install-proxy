@@ -28,9 +28,9 @@ tools:
   - host: deployer.hra42.lol
     repo: hra42/deployer
     display_name: deployer
-  - host: cpu-bench.hra42.lol
-    repo: hra42/cpu_bench_go
-    display_name: cpu_bench_go
+  - host: ai.hra42.lol
+    repo: hra42/ai
+    display_name: ai
 ```
 
 Config can come from a file or straight from the environment. Resolution order:
