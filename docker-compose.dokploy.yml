@@ -1,0 +1,36 @@
+# Deploy on Dokploy: create a Compose service pointing at this repo and set
+# Compose Path to `docker-compose.dokploy.yml`.
+#
+# Config comes from INSTALL_PROXY_CONFIG in Dokploy's Environment tab. Dokploy
+# writes those variables to a `.env` next to this file but does not inject them
+# automatically, hence `env_file` below.
+#
+# TLS is terminated by Cloudflare: point each tool host at this server as a
+# proxied (orange cloud) DNS record and use SSL/TLS mode `Full`. Traefik serves
+# the catch-all router over websecure with its self-signed default cert, which
+# `Full` accepts but `Full (strict)` does not. For `Full (strict)`, install a
+# Cloudflare Origin Certificate as Traefik's default certificate.
+#
+# The `$$` in the rule is Compose's escape for a literal `$`.
+
+services:
+  install-proxy:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      # install-proxy serves many hosts (one per configured tool), so match
+      # any host and use a low priority so tool-specific routers still win.
+      - "traefik.http.routers.install-proxy.rule=HostRegexp(`^.+$$`)"
+      - "traefik.http.routers.install-proxy.priority=1"
+      - "traefik.http.routers.install-proxy.entrypoints=websecure"
+      - "traefik.http.routers.install-proxy.tls=true"
+      - "traefik.http.services.install-proxy.loadbalancer.server.port=8080"
+
+networks:
+  dokploy-network:
+    external: true

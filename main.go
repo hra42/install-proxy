@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,7 +36,7 @@ func rootCmd() *cobra.Command {
 		RunE:          serve,
 	}
 	cmd.PersistentFlags().StringP("config", "c", "/etc/install-proxy/config.yml", "path to YAML config file")
-	cmd.AddCommand(validateCmd(), versionCmd())
+	cmd.AddCommand(validateCmd(), versionCmd(), healthcheckCmd())
 	return cmd
 }
 
@@ -49,14 +50,40 @@ func validateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			cfg, err := Load(path)
+			cfg, source, err := Resolve(path, cmd.Flags().Changed("config"))
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "ok: %s — %d tools, listen %s\n", path, len(cfg.Tools), cfg.Listen)
+			fmt.Fprintf(cmd.OutOrStdout(), "ok: %s — %d tools, listen %s\n", source, len(cfg.Tools), cfg.Listen)
 			return nil
 		},
 	}
+}
+
+func healthcheckCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "healthcheck",
+		Short: "Probe the local /healthz endpoint and exit non-zero on failure.",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			addr, err := cmd.Flags().GetString("addr")
+			if err != nil {
+				return err
+			}
+			client := &http.Client{Timeout: 3 * time.Second}
+			resp, err := client.Get("http://" + addr + "/healthz")
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("healthz returned %d", resp.StatusCode)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().String("addr", "127.0.0.1:8080", "address to probe")
+	return cmd
 }
 
 func versionCmd() *cobra.Command {
@@ -76,7 +103,7 @@ func serve(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	cfg, err := Load(path)
+	cfg, source, err := Resolve(path, cmd.Flags().Changed("config"))
 	if err != nil {
 		return err
 	}
@@ -100,7 +127,7 @@ func serve(cmd *cobra.Command, _ []string) error {
 		close(errCh)
 	}()
 
-	log.Printf("listening on %s, %d tools configured", cfg.Listen, len(cfg.Tools))
+	log.Printf("listening on %s, %d tools configured from %s", cfg.Listen, len(cfg.Tools), source)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)

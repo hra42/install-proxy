@@ -3,6 +3,14 @@
 #   - a cert resolver named `letsencrypt`
 # If your setup differs, edit the network name below and the
 # `traefik.http.routers.install-proxy.tls.certresolver` label.
+#
+# Certificate caveat: Traefik derives ACME domains from Host()/HostSNI()
+# matchers or an explicit tls.domains. The catch-all HostRegexp below gives it
+# none, so this router obtains no certificate of its own and falls back to
+# Traefik's self-signed default cert unless another router on the host already
+# holds one for the domain. That surfaces as a TLS trust error, not a 404.
+# To fix it, either put Cloudflare in front (see docker-compose.dokploy.yml)
+# or add a per-tool router with a Host() rule.
 
 services:
   install-proxy:
@@ -17,7 +25,7 @@ services:
       - "traefik.enable=true"
       # install-proxy serves many hosts (one per configured tool), so match
       # any host and use a low priority so tool-specific routers still win.
-      - "traefik.http.routers.install-proxy.rule=HostRegexp(`^.+$`)"
+      - "traefik.http.routers.install-proxy.rule=HostRegexp(`^.+$$`)"
       - "traefik.http.routers.install-proxy.priority=1"
       - "traefik.http.routers.install-proxy.entrypoints=websecure"
       - "traefik.http.routers.install-proxy.tls=true"

@@ -34,6 +34,9 @@ const htmlTemplate = `<!doctype html>
 `
 
 func Register(app *fiber.App, cfg *Config) {
+	app.Get("/healthz", func(c fiber.Ctx) error {
+		return plain(c, fiber.StatusOK, "ok\n")
+	})
 	app.Get("/install", handleInstall(cfg))
 	app.Use(notFound(cfg))
 }
