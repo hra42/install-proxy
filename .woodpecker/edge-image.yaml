@@ -1,7 +1,9 @@
-# Publish a test image after verification before the edge cutover.
+# Publish verified main builds for edge GitOps.
 when:
+  - event: push
+    branch: main
   - event: manual
-    branch: migrate/edge-images
+    branch: main
 
 depends_on: [ci]
 
@@ -19,4 +21,4 @@ steps:
       build_args:
         - COMMIT=${CI_COMMIT_SHA}
       tags:
-        - test-${CI_PIPELINE_NUMBER}-${CI_COMMIT_SHA:0:7}
+        - main-${CI_PIPELINE_NUMBER}-${CI_COMMIT_SHA:0:7}

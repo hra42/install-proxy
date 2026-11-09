@@ -1,5 +1,11 @@
 # install-proxy
 
+Production runs on the VPS edge k3s cluster. Woodpecker publishes verified
+main images to GHCR, and Flux deploys the selected digest from the homelab
+repository. The inline configuration is SOPS-encrypted in
+`edge/apps/edge-install-proxy`; its hostless ingress preserves catch-all routing.
+The Dokploy setup below remains useful as a rollback/reference during migration.
+
 A single Go binary that serves install-script endpoints for many tools, routed by the `Host` header. It replaces a fleet of per-tool Cloudflare Workers: for each configured host, `GET /install` returns either a small HTML landing page (for browsers) or the raw `install.sh` from that tool's latest GitHub Release (for `curl`/`wget`). Fronted by Traefik, deployed as a single container — either with plain `docker compose` on a VPS or [on Dokploy](#deploying-on-dokploy).
 
 ## Quick start
