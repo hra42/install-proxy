@@ -1,0 +1,17 @@
+# Check host routing and the install proxy before publishing an edge image.
+when:
+  - event: push
+    branch: main
+  - event: [pull_request, manual]
+
+steps:
+  - name: verify
+    image: golang:1.26-alpine
+    environment:
+      GOFLAGS: -buildvcs=false
+    commands:
+      - cp -a . /tmp/edge-ci
+      - cd /tmp/edge-ci
+      - go vet ./...
+      - go test ./...
+      - CGO_ENABLED=0 go build ./...

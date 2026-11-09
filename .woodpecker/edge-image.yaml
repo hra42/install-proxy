@@ -1,0 +1,22 @@
+# Publish a test image after verification before the edge cutover.
+when:
+  - event: manual
+    branch: migrate/edge-images
+
+depends_on: [ci]
+
+steps:
+  - name: publish
+    image: woodpeckerci/plugin-kaniko:2
+    settings:
+      registry: ghcr.io
+      repo: hra42/edge-install-proxy
+      username:
+        from_secret: edge_ghcr_username
+      password:
+        from_secret: edge_ghcr_token
+      dockerfile: Dockerfile
+      build_args:
+        - COMMIT=${CI_COMMIT_SHA}
+      tags:
+        - test-${CI_PIPELINE_NUMBER}-${CI_COMMIT_SHA:0:7}
